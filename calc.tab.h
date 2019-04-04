@@ -53,8 +53,12 @@ extern int yydebug;
     T_LEFT = 263,
     T_RIGHT = 264,
     T_MOD = 265,
-    T_NEWLINE = 266,
-    T_QUIT = 267
+    T_ArLeft = 266,
+    T_ArRight = 267,
+    T_NEWLINE = 268,
+    T_QUIT = 269,
+    T_Assign = 270,
+    T_Var = 271
   };
 #endif
 
@@ -67,7 +71,7 @@ union YYSTYPE
 
 	int ival;
 
-#line 71 "calc.tab.h" /* yacc.c:1909  */
+#line 75 "calc.tab.h" /* yacc.c:1909  */
 };
 
 typedef union YYSTYPE YYSTYPE;

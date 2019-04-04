@@ -12,9 +12,9 @@ void yyerror(const char* s);
 }
 
 %token<ival> T_INT
-%token T_PLUS T_MINUS T_MULTIPLY T_DIVIDE T_LEFT T_RIGHT T_MOD T_ArLeft T_ArRight T_Var
+%token T_PLUS T_MINUS T_MULTIPLY T_DIVIDE T_LEFT T_RIGHT T_MOD T_ArLeft T_ArRight
 %token T_NEWLINE T_QUIT
-%token T_Assign 
+%token T_Assign T_Var
 %left T_PLUS T_MINUS
 %left T_MULTIPLY T_DIVIDE 
 
@@ -43,8 +43,9 @@ expression: T_INT				        { $$ = $1; }
 	  | T_LEFT expression T_RIGHT		{ $$ = $2; }
 ;
 
-array: Tvar T_ArLeft T_INT T_ArRight 	{printf("yay ");} 
-	  |  Tvar T_ArLeft T_INT T_ArRight T_Assign T_INT { printf("$$ = $6");}
+array: 
+	  |  T_ArLeft T_ArRight T_NEWLINE	{	printf("\n>>>yay \n");} 
+	  |  T_Var T_ArLeft T_INT T_ArRight T_Assign T_INT T_NEWLINE { printf("$$ = $6");}
 
 %%
 int main() {
