@@ -1,32 +1,62 @@
-%option noyywrap
+D			[0-9]
+L			[a-zA-Z_]
+H			[a-fA-F0-9]
+E			[Ee][+-]?{D}+
+FS			(f|F|l|L)
+IS			(u|U|l|L)*
+
 
 %{
-#include <stdio.h>
-
-#define YY_DECL int yylex()
-
 #include "calc.tab.h"
+#include <string.h>
+void yyerror (char *s);
+int yylex();
+
+void comment(int i); 
 
 %}
 
+%x STRING
+
 %%
 
-[ \t]	; // ignore all whitespace
-[0-9]+		{yylval.ival = atoi(yytext); return T_INT;}
-\n		{return T_NEWLINE;}
-"+"		{return T_PLUS;}
-"-"		{return T_MINUS;}
-"*"		{return T_MULTIPLY;}
-"/"		{return T_DIVIDE;}
-"%"     {return T_MOD;}
-"("		{return T_LEFT;}
-")"		{return T_RIGHT;}
-"["     {return T_ArLeft;}
-"]"     {return T_ArRight;}
-"a"      {return T_Var;}
-"="         {return T_Assign;}
-"lakoi"		{return T_QUIT;}
-"bye"		{return T_QUIT;}
-"byeja"		{return T_QUIT;}
-"jubjub"	{return T_QUIT;}
+"print"			       {return print;}
+"println"			   {return println;}
+"bye"				   {return exit_command;}
+{L}({L}|{D})*		   {yylval.id = yytext[0]; return identifier; }
+[0-9]+                 {yylval.num = atoi(yytext); return number;}
+[ \t\n]                {};
+[-+*/=;()%]            {return yytext[0];}
+
+<INITIAL>\"            {BEGIN(STRING);}
+<STRING>[^"]*\"        {BEGIN(INITIAL); yylval.num = strdup(yytext); return(string);}
+
+
+"/*"	               { comment(1);}
+"//"	               { comment(2);}
+
 %%
+int yywrap (void) {return 1;}
+
+
+void comment(int i)
+{
+    int c;
+    while((c = input()) != 0){
+        if(i == 1){
+            if(c == '*'){
+                if((c = input()) == '/')
+                    break;
+                else
+                    unput(c);
+            }
+        }else if(i == 2){
+            if(c != 0){
+                if((c = input()) == '\n')
+                    break;
+                else
+                    unput(c);
+            }
+        }
+    }
+}

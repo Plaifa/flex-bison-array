@@ -1,64 +1,177 @@
 %{
-#include <stdio.h>
+void yyerror (char *s);
+int yylex();
+#include <stdio.h>     /* C declarations used in actions */
 #include <stdlib.h>
-extern int yylex();
-extern int yyparse();
-extern FILE* yyin;
-void yyerror(const char* s);
+#include <ctype.h>
+#include <string.h>
+int symbols[255];
+int symbolVal(char symbol);
+void updateSymbolVal(char symbol, int val);
+
+typedef struct elem {
+    char *val;
+    struct elem *next;
+} elem_t;
+
+elem_t *words = NULL;
+
+void add_word(char *val) 
+{
+    elem_t *word = (elem_t *)malloc(sizeof(elem_t));
+    if (word == NULL) {
+    fprintf (stderr, "%s", "malloc failed");
+    exit(1);
+     }
+    word->val = val;
+    word->next = words;
+    words = word;
+}
+
 %}
 
-%union {
-	int ival;
+%output "parser.c"
+%defines "parser.h"
+
+%name-prefix "yy1"
+%define api.pure full
+%parse-param { elem_t **words };
+
+%union {long long int num; char id; char *str}
+         /* Yacc definitions */
+%start line
+%token print println 
+%token exit_command
+%token <num> number string
+%token <id> identifier
+%type <num> line exp term 
+%type <id> assignment
+%token <str> WORD
+
+%%
+
+
+
+line1: assignment ';'		{}
+    | exit_command ';'		{exit(EXIT_SUCCESS); }
+    | println exp  ';'      {printf("%lld\n", $2);}
+    | print exp ';'			{printf("%lld", $2);}
+    | print string ';'      {printf("%s",(char * )($2));}
+    | line print string ';' {printf("%s",(char * )($3));}
+    | println string ';'    {printf("%s\n",(char * )($2));}
+    | line assignment ';'	{}
+    | line print exp ';'	{printf("%lld", $3);}
+    | line println exp  ';' {printf("%lld\n", $3);}
+    | line exit_command ';'	{exit(0);}
+    ;
+line: WORD { add_word(yylval.str);        printf("word: %s\n", yylval.str); }
+    | line WORD { add_word(yylval.str);    printf("word: %s\n", yylval.str); }
+    ;
+assignment: identifier '=' exp  { updateSymbolVal($1,$3); }
+    ;
+
+exp: term                  {$$ = $1;}
+    | exp '+' exp          {$$ = $1 + $3;}
+    | exp '-' exp          {$$ = $1 - $3;}
+    | exp '*' exp          {$$ = $1 * $3;}
+	| exp '/' exp			{
+    if($3){
+        $$ = $1 / $3;
+	}else{
+        $$ = $$;
+        fprintf (stderr, "division by zero \n"  );
+    }
+    }	
+
+	| exp '%' exp          {$$ = $1 % $3;}
+	| '-' exp 				{$$ = - $2; }
+    | '(' exp ')'			{$$ = $2;}
+    ;
+
+term: number                {$$ = $1;}
+    | identifier			{$$ = symbolVal($1);} 
+    ;
+
+%%                     /* C code */
+
+int computeSymbolIndex(char token)
+{
+	int idx = -1;
+	if(islower(token)) {
+		idx = token - 'a' + 26;
+	} else if(isupper(token)) {
+		idx = token - 'A';
+	}
+	return idx;
+} 
+
+/* returns the value of a given symbol */
+int symbolVal(char symbol)
+{
+	int bucket = computeSymbolIndex(symbol);
+	return symbols[bucket];
 }
 
-%token<ival> T_INT
-%token T_PLUS T_MINUS T_MULTIPLY T_DIVIDE T_LEFT T_RIGHT T_MOD T_ArLeft T_ArRight
-%token T_NEWLINE T_QUIT
-%token T_Assign T_Var
-%left T_PLUS T_MINUS
-%left T_MULTIPLY T_DIVIDE 
+/* updates the value of a given symbol */
+void updateSymbolVal(char symbol, int val)
+{
+	int bucket = computeSymbolIndex(symbol);
+	symbols[bucket] = val;
+}
 
-%type<ival> expression
+/*
+int main1 (int argc , char ** argv) {
+	//  init symbol table 
+	int i;
+	for(i = 0 ; i < 255 ; i++) {  //clear array value
+		symbols[i] = 0;
+	}
+	
+    extern int yylex();
+    extern int yyparse();
+    extern FILE * yyin;
+    extern FILE *yyout;
 
-%start calculation
 
-%%
-
-calculation:
-	   | calculation line
-;
-
-line: T_NEWLINE { printf(">>> ");}
-    | expression T_NEWLINE { printf("%i\n>>> ", $1);}
-    | T_QUIT T_NEWLINE { exit(0); }
-;
-
-expression: T_INT				        { $$ = $1; }
-	  | expression T_PLUS expression	{ $$ = $1 + $3; }
-	  | expression T_MINUS expression	{ $$ = $1 - $3; }
-	  | expression T_MULTIPLY expression{ $$ = $1 * $3; }
-      | expression T_DIVIDE expression	{ $$ = $1 / $3; }
-	  | expression T_MOD expression		{ $$ = $1 % $3; }
-      | T_MINUS expression 	            { $$ = - $2; }
-	  | T_LEFT expression T_RIGHT		{ $$ = $2; }
-;
-
-array: 
-	  |  T_ArLeft T_ArRight T_NEWLINE	{	printf("\n>>>yay \n");} 
-	  |  T_Var T_ArLeft T_INT T_ArRight T_Assign T_INT T_NEWLINE { printf("$$ = $6");}
-
-%%
-int main() {
-	yyin = stdin;
-    printf("Sawaddeeja. ni keu \" pasa karaoke\". version 1.0.0 by 0272 , 0823 , 0874 , 1189\n");
-	do {
-        printf(">>> ");
-		yyparse();
-	} while(!feof(yyin));
+	if(argc < 2){
+		printf("Sawaddeeja. ni keu \" pasa karaoke\". version 1.0.0 by 0272 , 0823 , 0874 , 1189\n");
+		return yyparse();
+	}else{
+        yyout = fopen(argv[2],"w");
+        yyin = fopen(argv[1], "r");
+        do{
+    	    yyparse();         
+        }while(!feof(yyin));
+        fclose(yyout);
+        fclose(yyin);
+    }
 	return 0;
+} */
+int main() {
+    elem_t *words = NULL;
+    yy1parse(&words);
+
+    int i = 0;
+    while (words != NULL) {
+        i++;
+        words = words->next;
+    }
+
+    fprintf(stdout, "Parsed %d WORDS\n", i);e
 }
 
-void yyerror(const char* s) {
-	fprintf(stderr, "Parse error: %s\n", s);
-	exit(1);
+void yy1error(char *error) {
+    fprintf(stderr, "%s", error);
 }
+
+int yy1lex(YYSTYPE *lvalp) {
+    static int i = 0;
+    while (i++ < 100) {
+        lvalp->str = "testWord";
+        return WORD;
+    }
+
+    return 0;
+}
+
+void yyerror (char *s) {fprintf (stderr, "%s\n", s);} 

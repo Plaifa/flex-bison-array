@@ -30,14 +30,14 @@
    This special exception was added by the Free Software Foundation in
    version 2.2 of Bison.  */
 
-#ifndef YY_YY_CALC_TAB_H_INCLUDED
-# define YY_YY_CALC_TAB_H_INCLUDED
+#ifndef YY_YY1_PARSER_H_INCLUDED
+# define YY_YY1_PARSER_H_INCLUDED
 /* Debug traces.  */
 #ifndef YYDEBUG
 # define YYDEBUG 0
 #endif
 #if YYDEBUG
-extern int yydebug;
+extern int yy1debug;
 #endif
 
 /* Token type.  */
@@ -50,7 +50,8 @@ extern int yydebug;
     exit_command = 260,
     number = 261,
     string = 262,
-    identifier = 263
+    identifier = 263,
+    WORD = 264
   };
 #endif
 
@@ -59,10 +60,10 @@ extern int yydebug;
 
 union YYSTYPE
 {
-#line 13 "calc.y" /* yacc.c:1909  */
-long long int num; char id;
+#line 40 "calc.y" /* yacc.c:1909  */
+long long int num; char id; char *str
 
-#line 66 "calc.tab.h" /* yacc.c:1909  */
+#line 67 "parser.h" /* yacc.c:1909  */
 };
 
 typedef union YYSTYPE YYSTYPE;
@@ -71,8 +72,7 @@ typedef union YYSTYPE YYSTYPE;
 #endif
 
 
-extern YYSTYPE yylval;
 
-int yyparse (void);
+int yy1parse (elem_t **words);
 
-#endif /* !YY_YY_CALC_TAB_H_INCLUDED  */
+#endif /* !YY_YY1_PARSER_H_INCLUDED  */
