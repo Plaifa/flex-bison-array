@@ -5,17 +5,18 @@ int yylex();
 #include <stdlib.h>
 #include <ctype.h>
 #include <string.h>
-int symbols[255];
+int symbols[255][255];
 int symbolVal(char symbol);
 void updateSymbolVal(char symbol, int val);
 int updateArray(char symbol,int index,int val);
-int arrayVal(int index);
+int arrayVal(char symbol,int index);
 %}
 
 %union {long long int num; char id;}         /* Yacc definitions */
 %start startline
 %token print println 
 %token exit_command 
+
 %token  ArLeft  ArRight SEMI newline
 %token <num> number string
 %token <id> identifier
@@ -63,7 +64,7 @@ exp: term                  {$$ = $1;}
 
 term: number                {$$ = $1;}
     | identifier			{$$ = symbolVal($1);}
-    | identifier ArLeft number ArRight { $$ = arrayVal($3);}
+    | identifier ArLeft number ArRight { $$ = arrayVal($1,$3);}
     ;
 %%                     /* C code */
 
@@ -82,22 +83,24 @@ int computeSymbolIndex(char token)
 int symbolVal(char symbol)
 {
 	int bucket = computeSymbolIndex(symbol);
-	return symbols[bucket];
+	return symbols[bucket][0];
 }
 
 /* updates the value of a given symbol */
 void updateSymbolVal(char symbol, int val)
 {
 	int bucket = computeSymbolIndex(symbol);
-	symbols[bucket] = val;
+	symbols[bucket][0] = val;
 }
 int updateArray(char symbol,int index,int val)
 {
-	symbols[index] = val;
+    int bucket = computeSymbolIndex(symbol);
+	symbols[bucket][index] = val;
 }
-int arrayVal(int index)
+int arrayVal(char symbol,int index)
 {
-    return symbols[index];
+    int bucket = computeSymbolIndex(symbol);
+    return symbols[bucket][index];
 }
 
 
@@ -105,7 +108,7 @@ int main (int argc , char ** argv) {
 	/* init symbol table */
 	int i;
 	for(i = 0 ; i < 255 ; i++) {  /*clear array value*/
-		symbols[i] = 0;
+		symbols[i][0] = 0;
 	}
 		
     extern int yylex();

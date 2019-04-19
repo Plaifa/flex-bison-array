@@ -63,7 +63,7 @@ extern int yydebug;
 
 union YYSTYPE
 {
-#line 15 "calc.y" /* yacc.c:1909  */
+#line 25 "calc.y" /* yacc.c:1909  */
 long long int num; char id;
 
 #line 70 "calc.tab.h" /* yacc.c:1909  */
