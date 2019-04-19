@@ -8,66 +8,39 @@ int yylex();
 int symbols[255];
 int symbolVal(char symbol);
 void updateSymbolVal(char symbol, int val);
-
-typedef struct elem {
-    char *val;
-    struct elem *next;
-} elem_t;
-
-elem_t *words = NULL;
-
-void add_word(char *val) 
-{
-    elem_t *word = (elem_t *)malloc(sizeof(elem_t));
-    if (word == NULL) {
-    fprintf (stderr, "%s", "malloc failed");
-    exit(1);
-     }
-    word->val = val;
-    word->next = words;
-    words = word;
-}
-
+int updateArray(char symbol,int index,int val);
+int arrayVal(int index);
 %}
 
-%output "parser.c"
-%defines "parser.h"
-
-%name-prefix "yy1"
-%define api.pure full
-%parse-param { elem_t **words };
-
-%union {long long int num; char id; char *str}
-         /* Yacc definitions */
-%start line
+%union {long long int num; char id;}         /* Yacc definitions */
+%start startline
 %token print println 
-%token exit_command
+%token exit_command 
+%token  ArLeft  ArRight SEMI newline
 %token <num> number string
 %token <id> identifier
 %type <num> line exp term 
 %type <id> assignment
-%token <str> WORD
+
 
 %%
 
+startline:
+    | startline line
+    ;
+
+line: newline                   {}
+    | assignment SEMI newline	{}
+    | exit_command newline		{exit(0); }
+    | println exp SEMI newline     {printf("%lld\n", $2);}
+    | print exp SEMI newline		{printf("%lld", $2);}
+    | print string SEMI newline      {printf("%s",(char * )($2));}
+    | println string SEMI newline    {printf("%s\n",(char * )($2));}
+    ;
 
 
-line1: assignment ';'		{}
-    | exit_command ';'		{exit(EXIT_SUCCESS); }
-    | println exp  ';'      {printf("%lld\n", $2);}
-    | print exp ';'			{printf("%lld", $2);}
-    | print string ';'      {printf("%s",(char * )($2));}
-    | line print string ';' {printf("%s",(char * )($3));}
-    | println string ';'    {printf("%s\n",(char * )($2));}
-    | line assignment ';'	{}
-    | line print exp ';'	{printf("%lld", $3);}
-    | line println exp  ';' {printf("%lld\n", $3);}
-    | line exit_command ';'	{exit(0);}
-    ;
-line: WORD { add_word(yylval.str);        printf("word: %s\n", yylval.str); }
-    | line WORD { add_word(yylval.str);    printf("word: %s\n", yylval.str); }
-    ;
-assignment: identifier '=' exp  { updateSymbolVal($1,$3); }
+assignment: identifier '=' exp              { updateSymbolVal($1,$3); }
+      | identifier ArLeft number ArRight '='  exp    { updateArray($1,$3,$6); }
     ;
 
 exp: term                  {$$ = $1;}
@@ -89,9 +62,9 @@ exp: term                  {$$ = $1;}
     ;
 
 term: number                {$$ = $1;}
-    | identifier			{$$ = symbolVal($1);} 
+    | identifier			{$$ = symbolVal($1);}
+    | identifier ArLeft number ArRight { $$ = arrayVal($3);}
     ;
-
 %%                     /* C code */
 
 int computeSymbolIndex(char token)
@@ -118,15 +91,23 @@ void updateSymbolVal(char symbol, int val)
 	int bucket = computeSymbolIndex(symbol);
 	symbols[bucket] = val;
 }
+int updateArray(char symbol,int index,int val)
+{
+	symbols[index] = val;
+}
+int arrayVal(int index)
+{
+    return symbols[index];
+}
 
-/*
-int main1 (int argc , char ** argv) {
-	//  init symbol table 
+
+int main (int argc , char ** argv) {
+	/* init symbol table */
 	int i;
-	for(i = 0 ; i < 255 ; i++) {  //clear array value
+	for(i = 0 ; i < 255 ; i++) {  /*clear array value*/
 		symbols[i] = 0;
 	}
-	
+		
     extern int yylex();
     extern int yyparse();
     extern FILE * yyin;
@@ -137,41 +118,16 @@ int main1 (int argc , char ** argv) {
 		printf("Sawaddeeja. ni keu \" pasa karaoke\". version 1.0.0 by 0272 , 0823 , 0874 , 1189\n");
 		return yyparse();
 	}else{
-        yyout = fopen(argv[2],"w");
-        yyin = fopen(argv[1], "r");
+        //yyout = fopen(argv[2],"w");
+        //yyin = fopen(argv[1], "r");
+        yyin = stdin;
         do{
     	    yyparse();         
         }while(!feof(yyin));
-        fclose(yyout);
+        //fclose(yyout);
         fclose(yyin);
     }
 	return 0;
-} */
-int main() {
-    elem_t *words = NULL;
-    yy1parse(&words);
-
-    int i = 0;
-    while (words != NULL) {
-        i++;
-        words = words->next;
-    }
-
-    fprintf(stdout, "Parsed %d WORDS\n", i);e
-}
-
-void yy1error(char *error) {
-    fprintf(stderr, "%s", error);
-}
-
-int yy1lex(YYSTYPE *lvalp) {
-    static int i = 0;
-    while (i++ < 100) {
-        lvalp->str = "testWord";
-        return WORD;
-    }
-
-    return 0;
 }
 
 void yyerror (char *s) {fprintf (stderr, "%s\n", s);} 

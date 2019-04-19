@@ -17,20 +17,33 @@ void comment(int i);
 %}
 
 %x STRING
+%x SINGLE_STRING
 
 %%
 
+"\n"                    {return newline;}
 "print"			       {return print;}
 "println"			   {return println;}
 "bye"				   {return exit_command;}
+"byeja"				   {return exit_command;}
+"byeeiei"				   {return exit_command;}
 {L}({L}|{D})*		   {yylval.id = yytext[0]; return identifier; }
 [0-9]+                 {yylval.num = atoi(yytext); return number;}
-[ \t\n]                {};
-[-+*/=;()%]            {return yytext[0];}
+[ \t]                {};
 
-<INITIAL>\"            {BEGIN(STRING);}
-<STRING>[^"]*\"        {BEGIN(INITIAL); yylval.num = strdup(yytext); return(string);}
+[-+*/=(){},%]            {return yytext[0];}
+"["                     {return ArLeft;}
+"]"                     {return ArRight;}   
+";"                      {return SEMI; }
 
+\"                          BEGIN(SINGLE_STRING);
+<SINGLE_STRING>{
+  \n                        yyerror("the string misses \" to termiate before newline");
+  <<EOF>>                   yyerror("the string misses \" to terminate before EOF");
+  ([^\\\"]|\\.)*            {yylval.num = strdup(yytext); return(string);}
+  \"                        BEGIN(INITIAL);
+  .                         ;
+}
 
 "/*"	               { comment(1);}
 "//"	               { comment(2);}
@@ -60,3 +73,4 @@ void comment(int i)
         }
     }
 }
+
